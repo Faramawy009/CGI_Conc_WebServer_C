@@ -1,0 +1,11 @@
+/home/elfar009/Downloads/clion-2017.3/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=/home/elfar009/.openmpi/bin/mpicc -G "CodeBlocks - Unix Makefiles" /home/elfar009/INET4021/WebServerRepo
+-- The C compiler identification is GNU 5.4.0
+-- Check for working C compiler: /home/elfar009/.openmpi/bin/mpicc
+-- Check for working C compiler: /home/elfar009/.openmpi/bin/mpicc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/elfar009/INET4021/WebServerRepo/cmake-build-debug

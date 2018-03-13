@@ -1,0 +1,3 @@
+Options: 
+
+Options:-DCMAKE_C_COMPILER=/home/elfar009/.openmpi/bin/mpicc

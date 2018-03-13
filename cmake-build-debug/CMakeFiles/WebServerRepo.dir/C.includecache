@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/elfar009/INET4021/WebServerRepo/main.c
+stdio.h
+-
+stdlib.h
+-
+netdb.h
+-
+netinet/in.h
+-
+unistd.h
+-
+string.h
+-
+fcntl.h
+-
+signal.h
+-
+

@@ -1,0 +1,3 @@
+/home/elfar009/INET4021/WebServerRepo/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/elfar009/INET4021/WebServerRepo/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/elfar009/INET4021/WebServerRepo/cmake-build-debug/CMakeFiles/WebServerRepo.dir
