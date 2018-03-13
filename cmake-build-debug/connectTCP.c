@@ -1,5 +1,6 @@
-/* connectTCP.c - connectTCP */
 #include "connectsock.c"
+/* connectTCP.c - connectTCP */
+
 int	connectsock(const char *host, const char *service,
 		const char *transport);
 

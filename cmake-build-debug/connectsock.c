@@ -10,13 +10,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "errexit.c"
-
 #ifndef	INADDR_NONE
 #define	INADDR_NONE	0xffffffff
 #endif	/* INADDR_NONE */
 
-#include <errno.h>
+extern int	errno;
 
 int	errexit(const char *format, ...);
 

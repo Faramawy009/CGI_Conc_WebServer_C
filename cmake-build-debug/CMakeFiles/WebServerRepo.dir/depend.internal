@@ -3,3 +3,6 @@
 
 CMakeFiles/WebServerRepo.dir/main.c.o
  /home/elfar009/INET4021/WebServerRepo/main.c
+ /home/elfar009/INET4021/WebServerRepo/src/connectTCP.c
+ /home/elfar009/INET4021/WebServerRepo/src/connectsock.c
+ /home/elfar009/INET4021/WebServerRepo/src/errexit.c

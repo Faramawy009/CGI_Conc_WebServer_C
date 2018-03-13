@@ -7,7 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
-//#include "connectsock.c"
+#include "src/connectTCP.c"
 #define BUFF_SIZE 1024
 #define PORT_NUMBER 45678
 
@@ -63,30 +63,30 @@ int main( int argc, char **argv ) {
 
     /* Accept actual connection from the client */
     while (1) {
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+        newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
 
-    if (newsockfd < 0) {
-        perror("ERROR on accept");
-        exit(1);
-    }
+        if (newsockfd < 0) {
+            perror("ERROR on accept");
+            exit(1);
+        }
 
-    /* If connection is established then start communicating */
-    bzero(receiveBuff, BUFF_SIZE - 1);
-    n = recv(newsockfd, receiveBuff, BUFF_SIZE - 1, 0);
+        /* If connection is established then start communicating */
+        bzero(receiveBuff, BUFF_SIZE - 1);
+        n = recv(newsockfd, receiveBuff, BUFF_SIZE - 1, 0);
 
-    if (n < 0) {
-        perror("ERROR reading from socket");
-        exit(1);
-    }
+        if (n < 0) {
+            perror("ERROR reading from socket");
+            exit(1);
+        }
 
-    printf("Here is the message: %s\n", receiveBuff);
+        printf("Here is the message: %s\n", receiveBuff);
 
-    char *msg = (char *) malloc(sizeof(char) * BUFF_SIZE);
-    strcat(msg, HTTP_Header);
-    strcat(msg, sendBuff);
-    int len = strlen(msg);
-    int c = send(newsockfd, msg, len, 0);
-    close(newsockfd);
+        char *msg = (char *) malloc(sizeof(char) * BUFF_SIZE);
+        strcat(msg, HTTP_Header);
+        strcat(msg, sendBuff);
+        int len = strlen(msg);
+        int c = send(newsockfd, msg, len, 0);
+        close(newsockfd);
     }
     /* Write a response to the client */
 //    if (c < 0) {
