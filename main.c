@@ -7,9 +7,10 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
-#include "src/connectTCP.c"
+#include "src/passiveTCP.c"
 #define BUFF_SIZE 1024
-#define PORT_NUMBER 45678
+#define PORT_NUMBER "34567"
+
 
 
 void handle_sigalrm(int signal) {
@@ -19,45 +20,17 @@ void handle_sigalrm(int signal) {
 }
 
 int main( int argc, char **argv ) {
-    chdir("../../Lab1Repo/src/");
-    int sockfd, newsockfd, htmlFileFd, clilen;
+    int sockfd, newsockfd, htmlFileFd, clilen, n;
     char *receiveBuff = (char *) malloc(sizeof(char) * BUFF_SIZE);
     char *sendBuff = (char *) malloc(sizeof(char) * BUFF_SIZE);
+    char *msg = (char *) malloc(sizeof(char) * BUFF_SIZE);
     char *HTTP_Header = "HTTP/1.0 \n"
             "Content-type: text/html\n"
             "\n";
-    struct sockaddr_in serv_addr, cli_addr;
-    int n;
+    struct sockaddr_in cli_addr;
     int fd = open("../index.html", O_RDONLY);
     read(fd, sendBuff, BUFF_SIZE - 1);
-    /* First call to socket() function */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-    if (sockfd < 0) {
-        perror("ERROR opening socket");
-        exit(1);
-    }
-
-    /* Initialize socket structure */
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(PORT_NUMBER);
-
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int)) < 0)
-        perror("setsockopt(SO_REUSEADDR) failed");
-
-    /* Now bind the host address using bind() call.*/
-    if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
-        perror("ERROR on binding");
-        exit(1);
-    }
-
-    /* Now start listening for the clients, here process will
-       * go in sleep mode and will wait for the incoming connection
-    */
-
+    sockfd = passiveTCP(PORT_NUMBER,BUFF_SIZE);
     listen(sockfd, 5);
     clilen = sizeof(cli_addr);
 
@@ -81,19 +54,13 @@ int main( int argc, char **argv ) {
 
         printf("Here is the message: %s\n", receiveBuff);
 
-        char *msg = (char *) malloc(sizeof(char) * BUFF_SIZE);
+        bzero(msg, BUFF_SIZE - 1);
         strcat(msg, HTTP_Header);
         strcat(msg, sendBuff);
-        int len = strlen(msg);
-        int c = send(newsockfd, msg, len, 0);
+        size_t len = strlen(msg);
+        send(newsockfd, msg, len, 0);
         close(newsockfd);
     }
-    /* Write a response to the client */
-//    if (c < 0) {
-//        perror("ERROR writing to socket");
-//        exit(1);
-//    }
-    // close(newsockfd);
     close(sockfd);
 
     return 0;
