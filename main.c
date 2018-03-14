@@ -126,19 +126,13 @@ int main( int argc, char **argv ) {
                     send(newsockfd,HTTP_Text_Header,STRLEN(HTTP_Text_Header),0);
                 else if(strcmp(extension,"cgi")==0) {
                     printf("I am in CGI\n\n");
-//                    printf("HTTP/1.0 200 OK\nContent-type: text/html\n\n<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>");
-//                    printf("Testttt\n");
-//                    printf("<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>");
-//                    char* headerTest = "HTTP/1.0 200 OK\nContent-type: text/html\n\n<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>";
-//                    char* contentTest = "<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>";
-//                    int headerLen = strlen(headerTest);
-//                    int contentLen = strlen(contentTest);
-//                    send(newsockfd,headerTest,headerLen,0);
-//                    send(newsockfd,contentTest,contentLen,0);
                     int processID = fork();
                     printf("Pid is %d\n",processID);
                     if(processID==0) { //child
                         printf("I am in Child\n\n");
+                        //close listening socket
+                        close(sockfd);
+                        //Move output to connected socket
                         dup2(newsockfd,1);
 //                        close(1);
 //                        execl("/bin/bash","bash", "cgi-bin/cgiTest.py");
@@ -148,8 +142,9 @@ int main( int argc, char **argv ) {
                             exit(1);
                         }
                     } else {
-                        printf("I am in Parent\n\n");
-                        waitpid(processID,0,0);
+//                        printf("I am in Parent\n\n");
+//                        waitpid(processID,0,0);
+                        //Clear buffer and close connected socket
                         bzero(receiveBuff, BUFF_SIZE);
                         bzero(sendBuff, BUFF_SIZE);
                         close(newsockfd);
