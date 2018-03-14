@@ -2,19 +2,19 @@
 <body>
 <h1>MatzzRokzz</h1>
 <img src="images/Math.gif">
-<H1> Please use the following form to add two number</H1>
-<FORM ACTION=http://localhost:23456/cgi-bin/add.cgi METHOD=POST>
+<H1> Please use the following form to add two numbers</H1>
+<FORM ACTION=http://localhost:23456/cgi-bin/addMul_Script.class METHOD=GET>
 Num1: <INPUT NAME=FirstNum> <br>
 Num2: <INPUT NAME=SecondNum><br>
-      <INPUT TYPE="SUBMIT" NAME="GO">
+      <INPUT TYPE=SUBMIT NAME=GO>
+</FORM>
+
+<H1> Please use the following form to multiply two numbers</H1>
+<FORM ACTION=http://localhost:23456/cgi-bin/addMul_Script.class METHOD=POST>
+Num1: <INPUT NAME=FirstNum> <br>
+Num2: <INPUT NAME=SecondNum><br>
+      <INPUT TYPE=SUBMIT NAME=GO>
 </FORM>
 <H2> Thank you</H2>
-<!-- <FORM action = "http://localhost:23456/cgi-bin/cgiTest.py" method="POST">
-   First Name: <input type="text" name="first_name">  <br>
-
-   Last Name: <input type="text" name="last_name">
-
-   <input type="submit" value="Submit">
-</FORM> -->
 </body>
 </html>

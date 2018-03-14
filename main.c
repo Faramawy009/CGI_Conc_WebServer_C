@@ -10,7 +10,6 @@
 #include <wait.h>
 #include "src/passiveTCP.c"
 #define BUFF_SIZE 1024
-#define PORT_NUMBER "23456"
 static const char HTTP_Text_Header[] =  "HTTP/1.0 200 OK\n"\
                                         "Content-type: text/html\n\n";
 
@@ -62,8 +61,46 @@ void handle_sig(int signal) {
 //}
 
 
+void readConfig(int* nConnections, char* root, char* indexFile, char* port) {
+    FILE * fstream = fopen("../conf/httpd.conf","r");
+    if (fstream == NULL){
+        perror("cannot open config file!");
+        exit(1);
+    }
+    size_t len;
+    char** lines = (char **) malloc(sizeof(char*) * 4);
+    for(int i=0; i<4; i++) {
+        lines[i] = (char *) malloc(sizeof(char) * 100);
+        if(getline(&lines[i], &len, fstream) == -1){
+            printf("%s", "error reading from config file!");
+            exit(EXIT_FAILURE);
+        }
+        //lines[i][len] = '\0';
+    }
+
+    char* temp;
+    char slash = '\\';
+    temp = strtok(lines[0],"=");
+    temp = strtok(NULL,"=");
+    *nConnections = atoi(temp);
+    temp = strtok(lines[1],"=");
+    strcpy(root,strtok(NULL,"="));
+    root[strlen(root)-1] = '\0';
+    temp = strtok(lines[2],"=");
+    strcpy(indexFile, strtok(NULL,"="));
+    indexFile[strlen(indexFile)-1] = '\0';
+    temp = strtok(lines[3],"=");
+    strcpy(port,strtok(NULL,"="));
+    port[strlen(port)-1] = '\0';
+}
+
 int main( int argc, char **argv ) {
-    chdir("../");
+    int nConnections;
+    char* root = (char *) malloc(sizeof(char) * 100);
+    char* indexFile = (char *) malloc(sizeof(char) * 100);
+    char* port = (char *) malloc(sizeof(char) * 6);
+    readConfig(&nConnections, root, indexFile, port);
+    chdir(root);
     signal(SIGINT, handle_sig);
     int sockfd, newsockfd, clilen, fd;
     ssize_t n;
@@ -71,7 +108,7 @@ int main( int argc, char **argv ) {
     char *receiveBuff = (char *) malloc(sizeof(char) * BUFF_SIZE),
          *sendBuff = (char *) malloc(sizeof(char) * BUFF_SIZE);
 
-    sockfd = passiveTCP(PORT_NUMBER,BUFF_SIZE);
+    sockfd = passiveTCP(port,BUFF_SIZE);
     listen(sockfd, 5);
 
     /* Accept actual connection from the client */
@@ -93,14 +130,14 @@ int main( int argc, char **argv ) {
         if(n==0)
             continue;
         receiveBuff[n] = '\0';
-//        printf("Here is the message: %s\n", receiveBuff);
-//        parse(receiveBuff);
+        char * msgBody = (char *) malloc(strlen(receiveBuff)* sizeof(char));
+        strcpy(msgBody,receiveBuff);
         char * method = strtok(receiveBuff," ");
         char * reqFile = strtok(NULL," ");
-//        printf(reqFile);
+        reqFile=strtok(reqFile,"?");
         if (strcmp(reqFile,"/")==0) {
             printf("Iam here Html\n");
-            fd = open("index.html", O_RDONLY);
+            fd = open(indexFile, O_RDONLY);
             send(newsockfd,HTTP_Text_Header,STRLEN(HTTP_Text_Header),0);
             while(readSize = read(fd,sendBuff,BUFF_SIZE-1)) {
                 send(newsockfd,sendBuff,readSize,0);
@@ -118,13 +155,14 @@ int main( int argc, char **argv ) {
                 char*extension = strtok(fileExtParser,".");
                 extension=strtok(NULL,".");
                 printf("Extension is: %s\n\n",extension);
+                printf("Req file currently is: %s\n", reqFile);
                 if(strcmp(extension,"gif")==0)
                     send(newsockfd,HTTP_GIF_Header,STRLEN(HTTP_GIF_Header),0);
                 else if(strcmp(extension,"jpg")==0)
                     send(newsockfd,HTTP_JPG_Header,STRLEN(HTTP_JPG_Header),0);
                 else if(strcmp(extension,"html")==0)
                     send(newsockfd,HTTP_Text_Header,STRLEN(HTTP_Text_Header),0);
-                else if(strcmp(extension,"cgi")==0) {
+                else if(strcmp(extension,"class")==0) {
                     printf("I am in CGI\n\n");
                     int processID = fork();
                     printf("Pid is %d\n",processID);
@@ -136,7 +174,15 @@ int main( int argc, char **argv ) {
                         dup2(newsockfd,1);
 //                        close(1);
 //                        execl("/bin/bash","bash", "cgi-bin/cgiTest.py");
-                        int val=execl (reqFile+1, reqFile+1, (char*)NULL);
+//                        char *fileName = strtok(reqFile,".");
+//                        printf("File name is: %s\n\n", fileName);
+                        char * dirParsing = (char*) malloc(sizeof(char)*(strlen(reqFile)+1));
+                        strcpy(dirParsing,reqFile);
+                        char* dir = strtok(dirParsing+1,"/");
+                        chdir(dir);
+                        dir=strtok(NULL,"/");
+                        char* execName = strtok(dir,".");
+                        int val=execlp ("java","java", execName, msgBody, (char*)NULL);
                         if(val==-1) {
                             perror("ERROR on exec");
                             exit(1);
