@@ -23,6 +23,8 @@ fcntl.h
 -
 signal.h
 -
+wait.h
+-
 src/passiveTCP.c
 /home/elfar009/INET4021/WebServerRepo/src/passiveTCP.c
 

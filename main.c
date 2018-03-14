@@ -7,6 +7,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <signal.h>
+#include <wait.h>
 #include "src/passiveTCP.c"
 #define BUFF_SIZE 1024
 #define PORT_NUMBER "23456"
@@ -112,13 +113,51 @@ int main( int argc, char **argv ) {
                 send(newsockfd,HTTP_404_Header,STRLEN(HTTP_404_Header),0);
                 fd = open("404.html",O_RDONLY);
             } else {
-                char*extension = strtok(reqFile,".");
-                if(strcmp(extension,"gif"))
+                char * fileExtParser = (char *) malloc(sizeof(char) *strlen(reqFile));
+                strcpy(fileExtParser,reqFile);
+                char*extension = strtok(fileExtParser,".");
+                extension=strtok(NULL,".");
+                printf("Extension is: %s\n\n",extension);
+                if(strcmp(extension,"gif")==0)
                     send(newsockfd,HTTP_GIF_Header,STRLEN(HTTP_GIF_Header),0);
-                else if(strcmp(extension,"jpg"))
+                else if(strcmp(extension,"jpg")==0)
                     send(newsockfd,HTTP_JPG_Header,STRLEN(HTTP_JPG_Header),0);
-                else if(strcmp(extension,"html"))
-            send(newsockfd,HTTP_GIF_Header,STRLEN(HTTP_GIF_Header),0);
+                else if(strcmp(extension,"html")==0)
+                    send(newsockfd,HTTP_Text_Header,STRLEN(HTTP_Text_Header),0);
+                else if(strcmp(extension,"cgi")==0) {
+                    printf("I am in CGI\n\n");
+//                    printf("HTTP/1.0 200 OK\nContent-type: text/html\n\n<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>");
+//                    printf("Testttt\n");
+//                    printf("<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>");
+//                    char* headerTest = "HTTP/1.0 200 OK\nContent-type: text/html\n\n<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>";
+//                    char* contentTest = "<html><body><h1>MatzzRokzz</h1><h1> Hello world</h1><body>";
+//                    int headerLen = strlen(headerTest);
+//                    int contentLen = strlen(contentTest);
+//                    send(newsockfd,headerTest,headerLen,0);
+//                    send(newsockfd,contentTest,contentLen,0);
+                    int processID = fork();
+                    printf("Pid is %d\n",processID);
+                    if(processID==0) { //child
+                        printf("I am in Child\n\n");
+                        dup2(newsockfd,1);
+//                        close(1);
+//                        execl("/bin/bash","bash", "cgi-bin/cgiTest.py");
+                        int val=execl (reqFile+1, reqFile+1, (char*)NULL);
+                        if(val==-1) {
+                            perror("ERROR on exec");
+                            exit(1);
+                        }
+                    } else {
+                        printf("I am in Parent\n\n");
+                        waitpid(processID,0,0);
+                        bzero(receiveBuff, BUFF_SIZE);
+                        bzero(sendBuff, BUFF_SIZE);
+                        close(newsockfd);
+                        printf("Closed socket!\n\n");
+                        continue;
+                    }
+                }
+
             }
 //            printf("Read size:%d\n %s\n", r, gifBuff);
             while(readSize = read(fd,sendBuff,BUFF_SIZE)) {

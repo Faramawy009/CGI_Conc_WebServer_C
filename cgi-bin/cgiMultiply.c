@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+static const char HTTP_Text_Header[] =  "HTTP/1.0 200 OK\n"\
+                                        "Content-type: text/html\n\n";
 int main(void) {
-  char *data;
-  long m,n;
-  printf("%s%c%c\n",
-  "Content-Type:text/html;charset=iso-8859-1",13,10);
+  // char *data;
+  // long m,n;
+  // printf("%s%c%c\n",
+  // "Content-Type:text/html;charset=iso-8859-1",13,10);
+  printf(HTML_Text_Header);
   printf("<TITLE>Addition results</TITLE>\n");
   printf("<H3>Addition results</H3>\n");
   // data = getenv("QUERY_STRING");
