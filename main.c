@@ -107,7 +107,6 @@ int main( int argc, char **argv ) {
 //    }
 //    dup2(error_log_fd,1);
     freopen("logs/error_log.txt","a+",stderr);
-    perror("ZOBRYYYY KBEEEER");
     signal(SIGINT, handle_sig);
     int sockfd, newsockfd, clilen, fd;
     ssize_t n;

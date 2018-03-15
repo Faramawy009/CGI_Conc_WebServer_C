@@ -13,6 +13,8 @@ stdlib.h
 -
 netdb.h
 -
+arpa/inet.h
+-
 netinet/in.h
 -
 unistd.h
