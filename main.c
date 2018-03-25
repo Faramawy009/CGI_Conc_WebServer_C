@@ -43,7 +43,27 @@ struct RequestData{
     char request [BUFF_SIZE];
 };
 
-void handleClientCGI(void * reqData){
+void printLog(char* logPath, char* ip, char* buffer) {
+    FILE * access_log = fopen(logPath, "ab+");
+    if (access_log == NULL){
+        perror("cannot open access log file!");
+        exit(1);
+    }
+    char *logMsg = (char*) malloc(sizeof(char)*(BUFF_SIZE+15));
+    sprintf(logMsg,"%s\n%s\n\n",ip,buffer);
+    if (fputs(logMsg, access_log) < 0){
+        perror("error witing to access_log");
+        exit(1);
+    }
+
+    if (fclose(access_log) != 0) {
+        perror("error closing access log file!\n");
+        exit(1);
+    }
+    free(logMsg);
+}
+
+void* handleClientCGI(void * reqData){
     struct RequestData* requestData = (struct RequestData *) reqData;
     char* receiveBuff = requestData->request;
     int clientSocketD = requestData->clientDescriptor;
@@ -89,7 +109,7 @@ void handleClientCGI(void * reqData){
     }
 }
 
-void handleClient(void * reqData) {
+void* handleClient(void * reqData) {
     char *sendBuff = (char *) malloc(sizeof(char) * BUFF_SIZE);
     struct RequestData* requestData = (struct RequestData *) reqData;
     char* receiveBuff = requestData->request;
@@ -156,7 +176,7 @@ void handle_sig(int signal) {
 
 
 void readConfig(int* nConnections, char* root, char* indexFile, char* port) {
-    FILE * fstream = fopen("../conf/httpd.conf","r");
+    FILE * fstream = fopen("./conf/httpd.conf","r");
     if (fstream == NULL){
         perror("cannot open config file!");
         exit(1);
@@ -188,25 +208,6 @@ void readConfig(int* nConnections, char* root, char* indexFile, char* port) {
     port[strlen(port)-1] = '\0';
 }
 
-void printLog(char* logPath, char* ip, char* buffer) {
-    FILE * access_log = fopen(logPath, "ab+");
-    if (access_log == NULL){
-        perror("cannot open access log file!");
-        exit(1);
-    }
-    char *logMsg = (char*) malloc(sizeof(char)*(BUFF_SIZE+15));
-    sprintf(logMsg,"%s\n%s\n\n",ip,buffer);
-    if (fputs(logMsg, access_log) < 0){
-        perror("error witing to access_log");
-        exit(1);
-    }
-
-    if (fclose(access_log) != 0) {
-        perror("error closing access log file!\n");
-        exit(1);
-    }
-    free(logMsg);
-}
 int main( int argc, char **argv ) {
     //redirecting stdout to error log
 
