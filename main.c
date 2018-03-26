@@ -38,6 +38,8 @@ char* indexFile;
 char* port;
 char * dummy;
 
+/*This struct is used to move data around between threads, and even in the main thread CGI
+  to enforce generalization whether data is copied to a thread or just passed to a function */
 struct RequestData{
     int clientDescriptor;
     char request [BUFF_SIZE];
@@ -68,28 +70,32 @@ void* handleClientCGI(void * reqData){
     char* receiveBuff = requestData->request;
     int clientSocketD = requestData->clientDescriptor;
 
+    //Getting the client ip from the socket descriptor and printing to the access log
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     getpeername(clientSocketD, (struct sockaddr *)&addr, &addr_size);
     char clientip [20];
     strcpy(clientip, inet_ntoa(addr.sin_addr));
-
     printLog("logs/access_log.txt",clientip,receiveBuff);
 
+    //Copying the request data into a local array to tokenize and later clear the passed reference
     char msgBody [strlen(receiveBuff)];
     strcpy(msgBody,receiveBuff);
 
+    //Parsing the requested file path
     strtok_r(receiveBuff," ", &receiveBuff);
     char * reqFile = strtok_r(receiveBuff," ", &dummy);
-
     reqFile=strtok_r(reqFile,"?", &dummy);
-    printf("I am in CGI\n\n");
+
+    //Forking to a new process to handle CGI
     int processID = fork();
-    printf("Pid is %d\n",processID);
     if(processID==0) { //child
-        printf("I am in Child\n\n");
+
         //Move output to connected socket
         dup2(clientSocketD,1);
+
+        //Parsing from the path to get the required file name and type, also to get class name for running in Java
+        //Note that we pass in the whole request to the java file and it parses the request whether it's post or get
         char dirParsing[strlen(reqFile)+1];
         strcpy(dirParsing,reqFile);
         char* savingPointer;
@@ -97,15 +103,18 @@ void* handleClientCGI(void * reqData){
         chdir(dir);
         dir=strtok_r(savingPointer,"/",&dummy);
         char* execName = strtok(dir,".");
+
+        //Starting the java program that handles the CGI Request.
         int val=execlp ("java","java", execName, msgBody, (char*)NULL);
         if(val==-1) {
             perror("ERROR on exec");
             exit(1);
         }
     } else {
+        //Closing the client socket in the parent, which gets closed automatically in the child
+        //when it terminates
         close(clientSocketD);
         free(reqData);
-//        printf("Closed socket!\n\n");
     }
 }
 
@@ -114,34 +123,36 @@ void* handleClient(void * reqData) {
     struct RequestData* requestData = (struct RequestData *) reqData;
     char* receiveBuff = requestData->request;
     int clientSocketD = requestData->clientDescriptor;
-    int fd = 0;
+    int fd = -1;
     int readSize = 0;
 
+    //Getting the client ip from the socket descriptor and printing to the access log
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     getpeername(clientSocketD, (struct sockaddr *)&addr, &addr_size);
     char clientip [20];
     strcpy(clientip, inet_ntoa(addr.sin_addr));
-
     printLog("logs/access_log.txt",clientip,receiveBuff);
 
+    //Copying the request data into a local array to tokenize and later clear the passed reference
     char msgBody [strlen(receiveBuff)];
     strcpy(msgBody, receiveBuff);
+
+    //Parsing the requested file path
     strtok_r(receiveBuff, " ", &receiveBuff);
     char *reqFile = strtok_r(receiveBuff, " ", &receiveBuff);
     reqFile = strtok_r(reqFile, "?", &dummy);
+
+    //Sending the correct HTTP header based on the file extension
     if (strcmp(reqFile, "/") == 0) {
-        printf("Iam here Html\n");
         fd = open(indexFile, O_RDONLY);
         send(clientSocketD, HTTP_Text_Header, STRLEN(HTTP_Text_Header), 0);
         while (readSize = read(fd, sendBuff, BUFF_SIZE - 1)) {
             send(clientSocketD, sendBuff, readSize, 0);
         }
     } else {
-        printf("Iam here not blank and this is req file:%s\n", reqFile);
         fd = open(reqFile + 1, O_RDONLY);
         if (fd == -1) {
-            printf("Yess fd is -1\n");
             send(clientSocketD, HTTP_404_Header, STRLEN(HTTP_404_Header), 0);
             fd = open("404.html", O_RDONLY);
         } else {
@@ -150,8 +161,6 @@ void* handleClient(void * reqData) {
             char *fileName;
             strtok_r(fileExtParser, ".", &fileName);
             char *extension = strtok_r(fileName, ".", &dummy);
-            printf("Extension is: %s\n\n", extension);
-            printf("Req file currently is: %s\n", reqFile);
             if (strcmp(extension, "gif") == 0)
                 send(clientSocketD, HTTP_GIF_Header, STRLEN(HTTP_GIF_Header), 0);
             else if (strcmp(extension, "jpg") == 0)
@@ -159,14 +168,15 @@ void* handleClient(void * reqData) {
             else if (strcmp(extension, "html") == 0)
                 send(clientSocketD, HTTP_Text_Header, STRLEN(HTTP_Text_Header), 0);
         }
+        //Responding to the client by sending the opened file requested.
         while(readSize = read(fd,sendBuff,BUFF_SIZE))
             send(clientSocketD,sendBuff,readSize,0);
     }
+    //Closing the client socket and freeing the heap data
     close(clientSocketD);
     free(sendBuff);
     free(reqData);
 }
-
 
 void handle_sig(int signal) {
     if (signal == SIGINT) {
@@ -186,14 +196,12 @@ void readConfig(int* nConnections, char* root, char* indexFile, char* port) {
     for(int i=0; i<4; i++) {
         lines[i] = (char *) malloc(sizeof(char) * 100);
         if(getline(&lines[i], &len, fstream) == -1){
-            printf("%s", "error reading from config file!");
+            perror("error reading from config file!");
             exit(EXIT_FAILURE);
         }
-        //lines[i][len] = '\0';
     }
 
     char* temp;
-    char slash = '\\';
     temp = strtok(lines[0],"=");
     temp = strtok(NULL,"=");
     *nConnections = atoi(temp);
@@ -209,28 +217,24 @@ void readConfig(int* nConnections, char* root, char* indexFile, char* port) {
 }
 
 int main( int argc, char **argv ) {
-    //redirecting stdout to error log
-
-
+    //Initializing and reading in the config file data then changing to root directory.
     nConnections = 0;
     root = (char *) malloc(sizeof(char) * 100);
     indexFile = (char *) malloc(sizeof(char) * 100);
     port = (char *) malloc(sizeof(char) * 6);
     readConfig(&nConnections, root, indexFile, port);
     chdir(root);
-//    int error_log_fd = open("logs/error_log.txt", 	O_APPEND | O_CREAT, S_IWUSR | S_IRUSR);
-//    if(error_log_fd < 0) {
-//        perror("Can't open error log file");
-//        exit(1);
-//    }
-//    dup2(error_log_fd,1);
+
+    //Redirecting the stderr to the error log file
     freopen("logs/error_log.txt","a+",stderr);
+
+    //Registering the signal handler for when the server is Interrupted
     signal(SIGINT, handle_sig);
-    int sockfd, newsockfd, clilen, fd;
+    int sockfd, newsockfd, clilen;
     ssize_t n;
-    size_t readSize;
     char *receiveBuff = (char *) malloc(sizeof(char) * BUFF_SIZE);
 
+    //Using the abstraction of creating a TCP socket to hide unnecessary details
     sockfd = passiveTCP(port,BUFF_SIZE);
     listen(sockfd, 5);
 
@@ -243,8 +247,6 @@ int main( int argc, char **argv ) {
             perror("ERROR on accept");
             exit(1);
         }
-        char *client_ip = (char *) malloc(20 * sizeof(char));
-        strcpy(client_ip, inet_ntoa(cli_addr.sin_addr));
         /* If connection is established then start communicating */
         n = recv(newsockfd, receiveBuff, BUFF_SIZE - 1, 0);
         if (n < 0) {
@@ -253,7 +255,6 @@ int main( int argc, char **argv ) {
         }
         if(n==0)
             continue;
-//        printLog("logs/access_log.txt",client_ip,receiveBuff);
         receiveBuff[n] = '\0';
 
         struct RequestData* requestData = (struct RequestData*) malloc(sizeof(struct RequestData));
@@ -275,7 +276,5 @@ int main( int argc, char **argv ) {
         }
 
     }
-    close(sockfd);
-
     return 0;
 }
